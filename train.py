@@ -27,8 +27,8 @@ parser.add_argument("--data_name", type=str, default="DRIVE", help="DRIVE, STARE
 parser.add_argument('--mask_type', type=str, default="MaskVSC", help='MaskVSC, or None')
 opt = parser.parse_args()
 
-train_path = r"D:\VC\MaskVSC\data\training"
-test_path  = r"D:\VC\MaskVSC\data\test\test"
+train_path = r"D:\VC\Segmentation\data\training"
+test_path  = r"D:\VC\Segmentation\data\test\test"
 
 
 # ---Eval---
@@ -48,11 +48,9 @@ def Eval(test_path, test_save_path):
     Eval_path = os.path.join(test_save_path, "Eval")
     temp_path = os.path.join(test_save_path, "temp")
 
-    # Clean and create directories
-    for path in [Eval_path, temp_path]:
-        if os.path.exists(path):
-            shutil.rmtree(path)
-        os.makedirs(path)
+    # Create directories if they don't exist
+    os.makedirs(Eval_path, exist_ok=True)
+    os.makedirs(temp_path, exist_ok=True)
 
     for test_file in test_files:
         open_name = os.path.join(test_dir, test_file)
@@ -120,18 +118,7 @@ def train(generator, criterion_BCE, criterion_Con, optimizer):
                 ImageDataset_Fundus(train_path, transforms_=transforms_,
                                   mask_type=opt.mask_type, mask_ratio=curr_mask_ratio),
             batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu,)
-        elif opt.data_type == "OCTA":
-            train_dataloader = DataLoader(
-                ImageDataset_OCTA(train_path, transforms_=transforms_,
-                                  mask_type=opt.mask_type, mask_ratio=curr_mask_ratio),
-            batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu,)
-        elif opt.data_type == "2PFM":
-            train_dataloader = DataLoader(
-                ImageDataset_2PFM(train_path, transforms_=transforms_,
-                                  mask_type=opt.mask_type, mask_ratio=curr_mask_ratio),
-            batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu,)
-        else:
-            raise Exception("Invalid data type!", opt.data_type)
+        
 
         # ---Training one epoch---
         for i, batch in enumerate(train_dataloader):
