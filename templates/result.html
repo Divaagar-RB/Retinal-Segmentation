@@ -1,0 +1,485 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retina Segmentation Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .original-icon {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .segmented-icon {
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .image-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f8fafc;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .result-image:hover {
+            transform: scale(1.02);
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .image-container:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .placeholder-content {
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .placeholder-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .action-section {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .upload-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 16px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .comparison-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .comparison-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 24px;
+                margin: 10px;
+            }
+        }
+
+        .processing-indicator {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .modal img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+       
+        <div class="results-grid">
+            <div class="image-card">
+                <div class="card-header">
+                    <div class="card-icon original-icon">👁️</div>
+                    <h2 class="card-title">Original Retina Image</h2>
+                </div>
+                <div class="image-container">
+                    <!-- Replace with actual Flask template variable -->
+                    <img id="originalImage" class="result-image" 
+                         src="{{ url_for('uploaded_file', filename=uploaded_image) }}"
+                         alt="Uploaded Retina Image" 
+                         onclick="openModal(this)">
+                    <div class="image-overlay">Click to enlarge</div>
+                </div>
+            </div>
+
+            <div class="image-card">
+                <div class="card-header">
+                    <div class="card-icon segmented-icon">🎯</div>
+                    <h2 class="card-title">Segmentation Result</h2>
+                </div>
+                <div class="image-container">
+                    <!-- Replace with actual Flask template variable -->
+                    <img id="segmentedImage" class="result-image" 
+                         src="{{ url_for('result_file', filename=result_image) }}" 
+                         alt="Segmentation Result" 
+                         onclick="openModal(this)">
+                    <div class="image-overlay">Click to enlarge</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="processing-indicator" id="processingIndicator">
+            <div class="spinner"></div>
+            <p>Processing your retina image...</p>
+        </div>
+
+        <div class="action-section">
+            <a href="#" class="upload-button" onclick="uploadAnother()">
+                <span>📤</span>
+                Analyze Another Image
+            </a>
+        </div>
+    </div>
+
+    <button class="comparison-toggle" onclick="toggleComparison()" title="Toggle comparison view">
+        ⚖️
+    </button>
+
+    <!-- Modal for enlarged images -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        let comparisonMode = false;
+
+        function openModal(img) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function uploadAnother() {
+            // Show processing indicator
+            document.getElementById('processingIndicator').style.display = 'block';
+            
+            // In a real Flask app, this would redirect to the upload route
+            setTimeout(() => {
+                window.location.href = '/'; // Replace with Flask url_for('index')
+            }, 1000);
+        }
+
+        function toggleComparison() {
+            const grid = document.querySelector('.results-grid');
+            comparisonMode = !comparisonMode;
+            
+            if (comparisonMode) {
+                grid.style.gridTemplateColumns = '1fr';
+                grid.style.gap = '10px';
+                
+                const cards = document.querySelectorAll('.image-card');
+                cards.forEach(card => {
+                    card.style.display = 'flex';
+                    card.style.alignItems = 'center';
+                    card.style.padding = '16px';
+                    const container = card.querySelector('.image-container');
+                    container.style.minHeight = '200px';
+                    container.style.flex = '1';
+                    container.style.marginLeft = '20px';
+                });
+            } else {
+                grid.style.gridTemplateColumns = '1fr 1fr';
+                grid.style.gap = '30px';
+                
+                const cards = document.querySelectorAll('.image-card');
+                cards.forEach(card => {
+                    card.style.display = 'block';
+                    card.style.padding = '24px';
+                    const container = card.querySelector('.image-container');
+                    container.style.minHeight = '300px';
+                    container.style.marginLeft = '0';
+                });
+            }
+        }
+
+        // Add hover effects and animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.image-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Simulate real-time stats updates
+            setInterval(() => {
+                const accuracy = document.querySelector('.stat-value');
+                const currentVal = parseFloat(accuracy.textContent);
+                const newVal = (currentVal + Math.random() * 0.1 - 0.05).toFixed(1);
+                if (newVal >= 98.5 && newVal <= 99.9) {
+                    accuracy.textContent = newVal + '%';
+                }
+            }, 5000);
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
